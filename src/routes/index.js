@@ -45,6 +45,11 @@ router.post("/v1/api/transfer", async (req, res) => {
     );
 
     console.log(`Account ${fromId} is:::: ${amountFrom}`);
+
+    if (amountFrom.amount < 0) {
+      throw new Error("Not enough money");
+    }
+
     const amountTo = await money.findOneAndUpdate(
       { userId: +toId },
       {
@@ -59,12 +64,21 @@ router.post("/v1/api/transfer", async (req, res) => {
     );
     console.log(`Account ${toId} is:::: ${amountTo}`);
 
+    await session.commitTransaction();
+
+    session.endSession();
+
     return res.json({
       msg: "Transfer is OK!",
     });
   } catch (error) {
     console.log(error);
-    res.send(error);
+    await session.abortTransaction();
+    session.endSession();
+    res.json({
+      status: 400,
+      data: error,
+    });
   }
 });
 
